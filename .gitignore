@@ -1,0 +1,65 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+main
+app
+server
+
+# Build output
+bin/
+dist/
+build/
+tmp/
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Logs
+*.log
+logs/
+*.pid
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency / vendoring (ignore only if you do not commit vendor)
+vendor/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Air / live reload
+.air.toml
+
+# Generated docs or temp exports
+*.tmp
+*.cache
+
+# Test artifacts
+testdata/*.db
+testdata/*.sqlite
+testdata/*.sqlite3
+
+# Docker overrides / local runtime files
+docker-compose.override.yml
