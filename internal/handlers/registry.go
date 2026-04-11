@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"hiretest-api/configs"
+	"hiretest-api/internal/repositories"
+	"hiretest-api/internal/services"
 
 	"gorm.io/gorm"
 )
@@ -23,11 +25,13 @@ type Registry struct {
 }
 
 func NewRegistry(db *gorm.DB, cfg configs.AppConfig) *Registry {
-	_ = db
-	_ = cfg
+	baseRepo := repositories.BaseRepository{DB: db}
+	authRepo := repositories.NewAuthRepository(baseRepo)
+	authService := services.NewAuthService(authRepo, cfg)
+	profileService := services.NewProfileService(authRepo)
 	return &Registry{
-		Auth:       &AuthHandler{},
-		Profile:    &ProfileHandler{},
+		Auth:       &AuthHandler{Service: authService},
+		Profile:    &ProfileHandler{Service: profileService},
 		Org:        &OrganizationHandler{},
 		Question:   &QuestionHandler{},
 		Test:       &TestHandler{},

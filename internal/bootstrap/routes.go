@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"hiretest-api/configs"
+	"hiretest-api/internal/common/middleware"
 	"hiretest-api/internal/handlers"
 	"hiretest-api/internal/routes"
 
@@ -11,20 +12,28 @@ import (
 
 func RegisterRoutes(app *fiber.App, db *gorm.DB, cfg configs.AppConfig) {
 	h := handlers.NewRegistry(db, cfg)
+
+	routes.RegisterHealthRoutes(app)
+
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
-	routes.RegisterHealthRoutes(app)
-	routes.RegisterAuthRoutes(v1, h)
-	routes.RegisterProfileRoutes(v1, h)
-	routes.RegisterOrganizationRoutes(v1, h)
-	routes.RegisterQuestionRoutes(v1, h)
-	routes.RegisterTestRoutes(v1, h)
-	routes.RegisterCampaignRoutes(v1, h)
-	routes.RegisterCandidateRoutes(v1, h)
-	routes.RegisterInvitationRoutes(v1, h)
-	routes.RegisterReportRoutes(v1, h)
-	routes.RegisterAuditRoutes(v1, h)
-	routes.RegisterPublicRoutes(v1, h)
-	routes.RegisterReviewerRoutes(v1, h)
+	public := v1.Group("/")
+	protected := v1.Group("/", middleware.JWT(cfg.Env.JWTSecret))
+	reviewer := v1.Group("/reviewer", middleware.JWT(cfg.Env.JWTSecret))
+
+	routes.RegisterAuthRoutes(public, h)
+	routes.RegisterPublicRoutes(public, h)
+
+	routes.RegisterProfileRoutes(protected, h)
+	routes.RegisterOrganizationRoutes(protected, h)
+	routes.RegisterQuestionRoutes(protected, h)
+	routes.RegisterTestRoutes(protected, h)
+	routes.RegisterCampaignRoutes(protected, h)
+	routes.RegisterCandidateRoutes(protected, h)
+	routes.RegisterInvitationRoutes(protected, h)
+	routes.RegisterReportRoutes(protected, h)
+	routes.RegisterAuditRoutes(protected, h)
+
+	routes.RegisterReviewerRoutes(reviewer, h)
 }
