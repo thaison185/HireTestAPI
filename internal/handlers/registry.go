@@ -27,13 +27,17 @@ type Registry struct {
 func NewRegistry(db *gorm.DB, cfg configs.AppConfig) *Registry {
 	baseRepo := repositories.BaseRepository{DB: db}
 	authRepo := repositories.NewAuthRepository(baseRepo)
+	questionRepo := repositories.NewQuestionRepository(baseRepo)
+
 	authService := services.NewAuthService(authRepo, cfg)
 	profileService := services.NewProfileService(authRepo)
+	questionService := services.NewQuestionService(questionRepo)
+
 	return &Registry{
 		Auth:       NewAuthHandler(authService),
 		Profile:    NewProfileHandler(profileService),
 		Org:        &OrganizationHandler{},
-		Question:   &QuestionHandler{},
+		Question:   NewQuestionHandler(questionService),
 		Test:       &TestHandler{},
 		Campaign:   &CampaignHandler{},
 		Candidate:  &CandidateHandler{},

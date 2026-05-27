@@ -21,6 +21,7 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB, cfg configs.AppConfig) {
 	public := v1.Group("/public")
 	auth := v1.Group("/auth")
 	profile := protected(v1, "/profile", cfg)
+	question := protected(v1, "/questions", cfg)
 	protected := protected(v1, "/protected", cfg)
 	reviewer := v1.Group("/reviewer", middleware.JWT(cfg.Env.JWTSecret))
 
@@ -29,7 +30,7 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB, cfg configs.AppConfig) {
 
 	routes.RegisterProfileRoutes(profile, h)
 	routes.RegisterOrganizationRoutes(protected, h)
-	routes.RegisterQuestionRoutes(protected, h)
+	routes.RegisterQuestionRoutes(question, h)
 	routes.RegisterTestRoutes(protected, h)
 	routes.RegisterCampaignRoutes(protected, h)
 	routes.RegisterCandidateRoutes(protected, h)
