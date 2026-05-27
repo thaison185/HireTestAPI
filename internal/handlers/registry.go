@@ -30,8 +30,8 @@ func NewRegistry(db *gorm.DB, cfg configs.AppConfig) *Registry {
 	authService := services.NewAuthService(authRepo, cfg)
 	profileService := services.NewProfileService(authRepo)
 	return &Registry{
-		Auth:       &AuthHandler{Service: authService},
-		Profile:    &ProfileHandler{Service: profileService},
+		Auth:       NewAuthHandler(authService),
+		Profile:    NewProfileHandler(profileService),
 		Org:        &OrganizationHandler{},
 		Question:   &QuestionHandler{},
 		Test:       &TestHandler{},

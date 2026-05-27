@@ -18,6 +18,7 @@ type Env struct {
 	DBPassword          string
 	DBName              string
 	DBSSLMode           string
+	RunSeeder           bool
 }
 
 func LoadEnv() Env {
@@ -35,6 +36,7 @@ func LoadEnv() Env {
 		DBPassword:          getEnv("DB_PASSWORD", "postgres"),
 		DBName:              getEnv("DB_NAME", "hiretest"),
 		DBSSLMode:           getEnv("DB_SSLMODE", "disable"),
+		RunSeeder:           getEnv("RUN_SEEDER", "false") == "true",
 	}
 }
 

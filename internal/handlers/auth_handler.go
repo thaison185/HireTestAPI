@@ -24,7 +24,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	if err := utils.Validate.Struct(req); err != nil {
-		return utils.Fail(c, fiber.StatusBadRequest, "validation error "+err.Error())
+		return utils.Fail(c, fiber.StatusBadRequest, utils.ParseValidationError(err))
 	}
 
 	result, err := h.Service.Login(req.Email, req.Password)

@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterProfileRoutes(v1 fiber.Router, h *handlers.Registry) {
-	r := v1.Group("/profile")
+func RegisterProfileRoutes(r fiber.Router, h *handlers.Registry) {
 	r.Get("/", h.Profile.Get)
 }

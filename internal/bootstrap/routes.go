@@ -18,14 +18,16 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB, cfg configs.AppConfig) {
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
-	public := v1.Group("/")
-	protected := v1.Group("/", middleware.JWT(cfg.Env.JWTSecret))
+	public := v1.Group("/public")
+	auth := v1.Group("/auth")
+	profile := protected(v1, "/profile", cfg)
+	protected := protected(v1, "/protected", cfg)
 	reviewer := v1.Group("/reviewer", middleware.JWT(cfg.Env.JWTSecret))
 
-	routes.RegisterAuthRoutes(public, h)
+	routes.RegisterAuthRoutes(auth, h)
 	routes.RegisterPublicRoutes(public, h)
 
-	routes.RegisterProfileRoutes(protected, h)
+	routes.RegisterProfileRoutes(profile, h)
 	routes.RegisterOrganizationRoutes(protected, h)
 	routes.RegisterQuestionRoutes(protected, h)
 	routes.RegisterTestRoutes(protected, h)
@@ -36,4 +38,8 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB, cfg configs.AppConfig) {
 	routes.RegisterAuditRoutes(protected, h)
 
 	routes.RegisterReviewerRoutes(reviewer, h)
+}
+
+func protected(v1 fiber.Router, prefix string, cfg configs.AppConfig) fiber.Router {
+	return v1.Group(prefix, middleware.JWT(cfg.Env.JWTSecret))
 }

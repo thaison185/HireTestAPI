@@ -24,3 +24,8 @@ services:
       POSTGRES_DB: hiretest
     ports:
       - "5432:5432"
+    volumes:
+      - hiretest_pgdata:/var/lib/postgresql/data
+
+volumes:
+  hiretest_pgdata:
