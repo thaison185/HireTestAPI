@@ -1,16 +1,30 @@
 package routes
 
 import (
+	"hiretest-api/internal/common/constants"
+	"hiretest-api/internal/common/middleware"
 	"hiretest-api/internal/handlers"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func RegisterQuestionRoutes(r fiber.Router, h *handlers.Registry) {
-	r.Post("/", h.Question.Create)
-	r.Get("/", h.Question.List)
-	r.Get("/:id", h.Question.Detail)
-	r.Patch("/:id", h.Question.Update)
-	r.Delete("/:id", h.Question.Delete)
+	r.Post("/", middleware.RequireRole(
+		constants.RoleAdmin,
+		constants.RoleRecruiter), h.Question.Create)
+	r.Get("/", middleware.RequireRole(
+		constants.RoleAdmin,
+		constants.RoleRecruiter,
+		constants.RoleReviewer), h.Question.List)
+	r.Get("/:id", middleware.RequireRole(
+		constants.RoleAdmin,
+		constants.RoleRecruiter,
+		constants.RoleReviewer), h.Question.Detail)
+	r.Patch("/:id", middleware.RequireRole(
+		constants.RoleAdmin,
+		constants.RoleRecruiter), h.Question.Update)
+	r.Delete("/:id", middleware.RequireRole(
+		constants.RoleAdmin,
+		constants.RoleRecruiter), h.Question.Delete)
 	// r.Post("/:id/publish", h.Question.Publish)
 }

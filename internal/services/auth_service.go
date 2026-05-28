@@ -51,7 +51,7 @@ func (s *AuthService) Login(email, password string) (*LoginResult, error) {
 	if err != nil {
 		return nil, errors.New("invalid JWT expiration duration")
 	}
-	accessToken, err := utils.GenerateJWT(user.ID, s.Cfg.Env.JWTSecret, accessTokenExpiresIn)
+	accessToken, err := utils.GenerateJWT(s.Cfg.Env.JWTSecret, user.ID, user.Role, accessTokenExpiresIn)
 	if err != nil {
 		return nil, errors.New("failed to generate access token")
 	}
@@ -60,7 +60,7 @@ func (s *AuthService) Login(email, password string) (*LoginResult, error) {
 	if err != nil {
 		return nil, errors.New("invalid JWT expiration duration")
 	}
-	refreshToken, err := utils.GenerateJWT(user.ID, s.Cfg.Env.JWTSecret, refreshTokenExpiresIn)
+	refreshToken, err := utils.GenerateJWT(s.Cfg.Env.JWTSecret, user.ID, user.Role, refreshTokenExpiresIn)
 	if err != nil {
 		return nil, errors.New("failed to generate refresh token")
 	}
@@ -93,7 +93,11 @@ func (s *AuthService) Refresh(refreshToken string) (*AuthTokens, error) {
 	if err != nil {
 		return nil, errors.New("invalid JWT expiration duration")
 	}
-	accessToken, err := utils.GenerateJWT(sub, s.Cfg.Env.JWTSecret, accessTokenExpiresIn)
+	role, ok := claims["role"].(string)
+	if !ok || role == "" {
+		return nil, errors.New("invalid token claims")
+	}
+	accessToken, err := utils.GenerateJWT(s.Cfg.Env.JWTSecret, sub, role, accessTokenExpiresIn)
 	if err != nil {
 		return nil, errors.New("failed to generate access token")
 	}
@@ -102,7 +106,7 @@ func (s *AuthService) Refresh(refreshToken string) (*AuthTokens, error) {
 	if err != nil {
 		return nil, errors.New("invalid JWT expiration duration")
 	}
-	newRefreshToken, err := utils.GenerateJWT(sub, s.Cfg.Env.JWTSecret, refreshTokenExpiresIn)
+	newRefreshToken, err := utils.GenerateJWT(s.Cfg.Env.JWTSecret, sub, role, refreshTokenExpiresIn)
 	if err != nil {
 		return nil, errors.New("failed to generate refresh token")
 	}

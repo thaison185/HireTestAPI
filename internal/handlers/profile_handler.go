@@ -5,7 +5,6 @@ import (
 	"hiretest-api/internal/services"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type ProfileHandler struct {
@@ -17,19 +16,9 @@ func NewProfileHandler(service *services.ProfileService) *ProfileHandler {
 }
 
 func (h *ProfileHandler) Get(c *fiber.Ctx) error {
-	userToken, ok := c.Locals("user").(*jwt.Token)
-	if !ok {
-		return utils.Fail(c, fiber.StatusUnauthorized, "unauthorized")
-	}
-
-	claims, ok := userToken.Claims.(jwt.MapClaims)
-	if !ok {
-		return utils.Fail(c, fiber.StatusUnauthorized, "invalid token claims")
-	}
-
-	userID, ok := claims["sub"].(string)
-	if !ok || userID == "" {
-		return utils.Fail(c, fiber.StatusUnauthorized, "invalid token subject")
+	userID, err := utils.CurrentUserID(c)
+	if err != nil {
+		return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
 	}
 
 	profile, err := h.Service.GetCurrentProfile(userID)
