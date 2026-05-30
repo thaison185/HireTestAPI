@@ -2,9 +2,15 @@ package services
 
 import (
 	"errors"
+	"strings"
+
+	"hiretest-api/internal/common/constants"
 	"hiretest-api/internal/models"
 	"hiretest-api/internal/repositories"
 	"hiretest-api/internal/requests"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type QuestionService struct {
@@ -69,4 +75,121 @@ func (s *QuestionService) GetByID(id string) (*models.Question, error) {
 		return nil, errors.New("question not found")
 	}
 	return question, nil
+}
+
+func (s *QuestionService) Create(req requests.CreateQuestionRequest, createdBy string) (*models.Question, error) {
+	if createdBy == "" {
+		return nil, errors.New("createdBy is required")
+	}
+
+	isActive := true
+	question := &models.Question{
+		ID:          uuid.NewString(),
+		Title:       req.Title,
+		Description: req.Description,
+		Type:        req.Type,
+		Level:       req.Level,
+		Category:    req.Category,
+		IsActive:    isActive,
+		CreatedBy:   createdBy,
+	}
+
+	if err := s.Repository.Create(question); err != nil {
+		return nil, err
+	}
+
+	return question, nil
+}
+
+func (s *QuestionService) Update(id string, req requests.UpdateQuestionRequest, userID string, role string) (*models.Question, error) {
+	if id == "" {
+		return nil, errors.New("question ID is required")
+	}
+	if userID == "" {
+		return nil, errors.New("unauthorized")
+	}
+
+	var question *models.Question
+	var err error
+
+	if role == constants.RoleAdmin {
+		question, err = s.Repository.FindByID(id)
+	} else {
+		question, err = s.Repository.FindOwnedByID(id, userID)
+	}
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if role == constants.RoleAdmin {
+				return nil, errors.New("question not found")
+			}
+			return nil, errors.New("question not found or you are not the owner")
+		}
+		return nil, err
+	}
+
+	updates := make(map[string]interface{})
+
+	if req.Title != nil {
+		updates["title"] = strings.TrimSpace(*req.Title)
+	}
+	if req.Description != nil {
+		updates["description"] = strings.TrimSpace(*req.Description)
+	}
+	if req.Type != nil {
+		updates["type"] = *req.Type
+	}
+	if req.Level != nil {
+		updates["level"] = *req.Level
+	}
+	if req.Category != nil {
+		updates["category"] = strings.TrimSpace(*req.Category)
+	}
+
+	if len(updates) == 0 {
+		return question, errors.New("no fields to update") // No updates, return existing question
+	}
+
+	if err := s.Repository.Update(id, updates); err != nil {
+		return nil, err
+	}
+
+	// Fetch the updated question
+	updatedQuestion, err := s.Repository.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedQuestion, nil
+
+}
+
+func (s *QuestionService) Delete(id string, userID string, role string) error {
+	if id == "" {
+		return errors.New("question ID is required")
+	}
+	if userID == "" {
+		return errors.New("unauthorized")
+	}
+
+	if role == constants.RoleAdmin {
+		_, err := s.Repository.FindByID(id)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("question not found")
+			}
+			return err
+		}
+		return s.Repository.Delete(id)
+	}
+
+	_, err := s.Repository.FindOwnedByID(id, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("question not found or you are not the owner")
+		}
+		return err
+	}
+
+	return s.Repository.Delete(id)
 }

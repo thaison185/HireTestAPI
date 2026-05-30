@@ -1,10 +1,11 @@
 package bootstrap
 
 import (
+	"errors"
+
+	"hiretest-api/internal/common/constants"
 	"hiretest-api/internal/common/utils"
 	"hiretest-api/internal/models"
-
-	"errors"
 
 	"gorm.io/gorm"
 )
@@ -30,21 +31,28 @@ func RunSeeders(db *gorm.DB) error {
 			Email:        "admin@hiretest.com",
 			PasswordHash: adminPasswordHash,
 			FullName:     "Admin User",
-			Role:         "admin",
+			Role:         constants.RoleAdmin,
 			IsActive:     true,
 		},
 		{
 			Email:        "reviewer@hiretest.com",
 			PasswordHash: reviewerPasswordHash,
 			FullName:     "Reviewer User",
-			Role:         "reviewer",
+			Role:         constants.RoleReviewer,
+			IsActive:     true,
+		},
+		{
+			Email:        "recruiter@hiretest.com",
+			PasswordHash: reviewerPasswordHash,
+			FullName:     "Recruiter User",
+			Role:         constants.RoleRecruiter,
 			IsActive:     true,
 		},
 		{
 			Email:        "candidate@hiretest.com",
 			PasswordHash: candidatePasswordHash,
 			FullName:     "Candidate User",
-			Role:         "candidate",
+			Role:         constants.RoleCandidate,
 			IsActive:     true,
 		},
 	}

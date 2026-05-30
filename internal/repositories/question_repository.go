@@ -17,7 +17,7 @@ func (r *QuestionRepository) List(query requests.ListQuestionRequest) ([]models.
 	var questions []models.Question
 	var total int64
 
-	dbQuery := r.DB.Model(&models.Question{})
+	dbQuery := r.DB.Model(&models.Question{}).Where("is_active = ?", true)
 
 	if query.Keyword != "" {
 		likeQuery := "%" + query.Keyword + "%"
@@ -55,8 +55,30 @@ func (r *QuestionRepository) List(query requests.ListQuestionRequest) ([]models.
 
 func (r *QuestionRepository) FindByID(id string) (*models.Question, error) {
 	var question models.Question
-	if err := r.DB.Where("id = ?", id).First(&question).Error; err != nil {
+	if err := r.DB.Where("id = ? AND is_active = ?", id, true).First(&question).Error; err != nil {
 		return nil, err
 	}
 	return &question, nil
+}
+
+func (r *QuestionRepository) FindOwnedByID(id string, ownerID string) (*models.Question, error) {
+	var question models.Question
+	if err := r.DB.Where("id = ? AND created_by = ? AND is_active = ?", id, ownerID, true).First(&question).Error; err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+func (r *QuestionRepository) Create(question *models.Question) error {
+	return r.DB.Create(question).Error
+}
+
+func (r *QuestionRepository) Update(id string, updates map[string]interface{}) error {
+	return r.DB.Model(&models.Question{}).Where("id = ? AND is_active = ?", id, true).
+		Updates(updates).Error
+}
+
+func (r *QuestionRepository) Delete(id string) error {
+	return r.DB.Model(&models.Question{}).Where("id = ? AND is_active = ?", id, true).
+		Updates(map[string]interface{}{"is_active": false}).Error
 }
