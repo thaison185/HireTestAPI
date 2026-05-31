@@ -14,7 +14,8 @@ import (
 )
 
 type QuestionService struct {
-	Repository *repositories.QuestionRepository
+	Repository   *repositories.QuestionRepository
+	AuditService *AuditService
 }
 
 type ListQuestionResponse struct {
@@ -27,11 +28,14 @@ type PaginationMeta struct {
 	Page       int   `json:"page"`
 	PageSize   int   `json:"page_size"`
 	TotalPages int   `json:"total_pages"`
+	HasNext    bool  `json:"has_next"`
+	HasPrev    bool  `json:"has_prev"`
 }
 
-func NewQuestionService(repo *repositories.QuestionRepository) *QuestionService {
+func NewQuestionService(repo *repositories.QuestionRepository, auditService *AuditService) *QuestionService {
 	return &QuestionService{
-		Repository: repo,
+		Repository:   repo,
+		AuditService: auditService,
 	}
 }
 
@@ -44,6 +48,14 @@ func (s *QuestionService) List(query requests.ListQuestionRequest) (*ListQuestio
 	}
 	if query.PageSize > 100 {
 		query.PageSize = 100
+	}
+
+	if query.Sort == "" {
+		query.Sort = "created_at.desc"
+	}
+
+	if query.Status == "" {
+		query.Status = "active"
 	}
 
 	questions, total, err := s.Repository.List(query)
@@ -59,6 +71,8 @@ func (s *QuestionService) List(query requests.ListQuestionRequest) (*ListQuestio
 			Page:       query.Page,
 			PageSize:   query.PageSize,
 			TotalPages: totalPages,
+			HasNext:    query.Page < totalPages,
+			HasPrev:    query.Page > 1,
 		},
 	}
 
@@ -160,6 +174,8 @@ func (s *QuestionService) Update(id string, req requests.UpdateQuestionRequest, 
 		return nil, err
 	}
 
+	s.AuditService.Log(userID, "question.updated", "question", id, "Question updated by user")
+
 	return updatedQuestion, nil
 
 }
@@ -180,6 +196,7 @@ func (s *QuestionService) Delete(id string, userID string, role string) error {
 			}
 			return err
 		}
+		_ = s.AuditService.Log(userID, "question.deleted", "question", id, "Question deleted by admin")
 		return s.Repository.Delete(id)
 	}
 
@@ -190,6 +207,8 @@ func (s *QuestionService) Delete(id string, userID string, role string) error {
 		}
 		return err
 	}
+
+	_ = s.AuditService.Log(userID, "question.deleted", "question", id, "Question deleted by owner")
 
 	return s.Repository.Delete(id)
 }

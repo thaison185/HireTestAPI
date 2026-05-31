@@ -9,5 +9,7 @@ import (
 func RunMigrations(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&models.User{},
+		&models.Question{},
+		&models.AuditLog{},
 	)
 }

@@ -28,10 +28,12 @@ func NewRegistry(db *gorm.DB, cfg configs.AppConfig) *Registry {
 	baseRepo := repositories.BaseRepository{DB: db}
 	authRepo := repositories.NewAuthRepository(baseRepo)
 	questionRepo := repositories.NewQuestionRepository(baseRepo)
+	auditRepo := repositories.NewAuditRepository(baseRepo)
 
 	authService := services.NewAuthService(authRepo, cfg)
 	profileService := services.NewProfileService(authRepo)
-	questionService := services.NewQuestionService(questionRepo)
+	auditService := services.NewAuditService(auditRepo)
+	questionService := services.NewQuestionService(questionRepo, auditService)
 
 	return &Registry{
 		Auth:       NewAuthHandler(authService),

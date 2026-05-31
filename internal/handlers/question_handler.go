@@ -48,6 +48,8 @@ func (h *QuestionHandler) List(c *fiber.Ctx) error {
 		Type:     c.Query("type"),
 		Level:    c.Query("level"),
 		Category: c.Query("category"),
+		Status:   c.Query("status", "active"),
+		Sort:     c.Query("sort", "created_at.desc"),
 		Page:     page,
 		PageSize: pageSize,
 	}

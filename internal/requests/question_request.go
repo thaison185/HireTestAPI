@@ -5,6 +5,8 @@ type ListQuestionRequest struct {
 	Type     string
 	Level    string
 	Category string
+	Status   string
+	Sort     string
 	Page     int
 	PageSize int
 }
