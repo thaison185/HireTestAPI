@@ -92,6 +92,14 @@ func (r *QuestionRepository) FindOwnedByID(id string, ownerID string) (*models.Q
 	return &question, nil
 }
 
+func (r *QuestionRepository) FindAnyByID(id string) (*models.Question, error) {
+	var question models.Question
+	if err := r.DB.Where("id = ?", id).First(&question).Error; err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
 func (r *QuestionRepository) Create(question *models.Question) error {
 	return r.DB.Create(question).Error
 }
@@ -104,4 +112,9 @@ func (r *QuestionRepository) Update(id string, updates map[string]interface{}) e
 func (r *QuestionRepository) Delete(id string) error {
 	return r.DB.Model(&models.Question{}).Where("id = ? AND is_active = ?", id, true).
 		Updates(map[string]interface{}{"is_active": false}).Error
+}
+
+func (r *QuestionRepository) Restore(id string) error {
+	return r.DB.Model(&models.Question{}).Where("id = ? AND is_active = ?", id, false).
+		Updates(map[string]interface{}{"is_active": true}).Error
 }

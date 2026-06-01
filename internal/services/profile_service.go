@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	code_errors "hiretest-api/internal/common/errors"
 	"hiretest-api/internal/models"
 	"hiretest-api/internal/repositories"
 )
@@ -16,15 +17,15 @@ func NewProfileService(repo *repositories.AuthRepository) *ProfileService {
 
 func (s *ProfileService) GetCurrentProfile(userID string) (*models.User, error) {
 	if userID == "" {
-		return nil, errors.New("unauthorized")
+		return nil, errors.New(code_errors.CodeUnauthorized)
 	}
 	user, err := s.Repo.FindUserByID(userID)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, errors.New(code_errors.CodeUserNotFound)
 	}
 
 	if user.IsActive == false {
-		return nil, errors.New("account is inactive")
+		return nil, errors.New(code_errors.CodeAccountInactive)
 	}
 
 	return user, nil

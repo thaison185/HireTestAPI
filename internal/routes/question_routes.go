@@ -26,5 +26,7 @@ func RegisterQuestionRoutes(r fiber.Router, h *handlers.Registry) {
 	r.Delete("/:id", middleware.RequireRole(
 		constants.RoleAdmin,
 		constants.RoleRecruiter), h.Question.Delete)
+	r.Patch("/:id/restore", middleware.RequireRole(
+		constants.RoleAdmin), h.Question.Restore)
 	// r.Post("/:id/publish", h.Question.Publish)
 }

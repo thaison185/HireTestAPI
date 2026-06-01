@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"hiretest-api/internal/common/constants"
+	code_errors "hiretest-api/internal/common/errors"
 	"hiretest-api/internal/common/utils"
 	"hiretest-api/internal/requests"
 	"hiretest-api/internal/services"
@@ -54,7 +56,12 @@ func (h *QuestionHandler) List(c *fiber.Ctx) error {
 		PageSize: pageSize,
 	}
 
-	results, err := h.Service.List(query)
+	role, err := utils.CurrentUserRole(c)
+	if err != nil {
+		return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
+	}
+
+	results, err := h.Service.List(query, role)
 	if err != nil {
 		return utils.Fail(c, fiber.StatusInternalServerError, err.Error())
 	}
@@ -109,11 +116,11 @@ func (h *QuestionHandler) Update(c *fiber.Ctx) error {
 	updatedQuestion, err := h.Service.Update(id, req, userID, role)
 	if err != nil {
 		switch err.Error() {
-		case "question not found", "question not found or you are not the owner":
+		case code_errors.CodeQuestionNotFound, code_errors.CodeQuestionNotFoundOrNotOwn:
 			return utils.Fail(c, fiber.StatusNotFound, err.Error())
-		case "unauthorized":
+		case code_errors.CodeUnauthorized:
 			return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
-		case "no fields to update", "question ID is required":
+		case code_errors.CodeNoFieldsToUpdate, code_errors.CodeQuestionIDRequired:
 			return utils.Fail(c, fiber.StatusBadRequest, err.Error())
 		default:
 			return utils.Fail(c, fiber.StatusInternalServerError, err.Error())
@@ -141,9 +148,9 @@ func (h *QuestionHandler) Delete(c *fiber.Ctx) error {
 	err = h.Service.Delete(id, userID, role)
 	if err != nil {
 		switch err.Error() {
-		case "question not found", "question not found or you are not the owner":
+		case code_errors.CodeQuestionNotFound, code_errors.CodeQuestionNotFoundOrNotOwn:
 			return utils.Fail(c, fiber.StatusNotFound, err.Error())
-		case "unauthorized":
+		case code_errors.CodeUnauthorized:
 			return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
 		default:
 			return utils.Fail(c, fiber.StatusInternalServerError, err.Error())
@@ -153,6 +160,44 @@ func (h *QuestionHandler) Delete(c *fiber.Ctx) error {
 		"id":        id,
 		"is_active": false,
 	})
+}
+
+func (h *QuestionHandler) Restore(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return utils.Fail(c, fiber.StatusBadRequest, code_errors.CodeQuestionIDRequired)
+	}
+
+	userID, err := utils.CurrentUserID(c)
+	if err != nil {
+		return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
+	}
+
+	role, err := utils.CurrentUserRole(c)
+	if err != nil {
+		return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
+	}
+
+	if role != constants.RoleAdmin {
+		return utils.Fail(c, fiber.StatusForbidden, code_errors.CodeForbidden)
+	}
+
+	updatedQuestion, err := h.Service.Restore(id, userID, role)
+	if err != nil {
+		switch err.Error() {
+		case code_errors.CodeQuestionNotFound:
+			return utils.Fail(c, fiber.StatusNotFound, err.Error())
+		case code_errors.CodeQuestionAlreadyActive, code_errors.CodeQuestionIDRequired:
+			return utils.Fail(c, fiber.StatusBadRequest, err.Error())
+		case code_errors.CodeUnauthorized:
+			return utils.Fail(c, fiber.StatusUnauthorized, err.Error())
+		case code_errors.CodeForbidden:
+			return utils.Fail(c, fiber.StatusForbidden, err.Error())
+		default:
+			return utils.Fail(c, fiber.StatusInternalServerError, err.Error())
+		}
+	}
+	return utils.Success(c, fiber.StatusOK, "question restored", updatedQuestion)
 }
 
 func (h *QuestionHandler) Publish(c *fiber.Ctx) error {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"hiretest-api/internal/common/constants"
+	code_errors "hiretest-api/internal/common/errors"
 	"hiretest-api/internal/models"
 	"hiretest-api/internal/repositories"
 	"hiretest-api/internal/requests"
@@ -39,7 +40,7 @@ func NewQuestionService(repo *repositories.QuestionRepository, auditService *Aud
 	}
 }
 
-func (s *QuestionService) List(query requests.ListQuestionRequest) (*ListQuestionResponse, error) {
+func (s *QuestionService) List(query requests.ListQuestionRequest, role string) (*ListQuestionResponse, error) {
 	if query.Page <= 0 {
 		query.Page = 1
 	}
@@ -55,6 +56,10 @@ func (s *QuestionService) List(query requests.ListQuestionRequest) (*ListQuestio
 	}
 
 	if query.Status == "" {
+		query.Status = "active"
+	}
+
+	if role != constants.RoleAdmin {
 		query.Status = "active"
 	}
 
@@ -81,19 +86,19 @@ func (s *QuestionService) List(query requests.ListQuestionRequest) (*ListQuestio
 
 func (s *QuestionService) GetByID(id string) (*models.Question, error) {
 	if id == "" {
-		return nil, errors.New("question ID is required")
+		return nil, errors.New(code_errors.CodeQuestionIDRequired)
 	}
 
 	question, err := s.Repository.FindByID(id)
 	if err != nil {
-		return nil, errors.New("question not found")
+		return nil, errors.New(code_errors.CodeQuestionNotFound)
 	}
 	return question, nil
 }
 
 func (s *QuestionService) Create(req requests.CreateQuestionRequest, createdBy string) (*models.Question, error) {
 	if createdBy == "" {
-		return nil, errors.New("createdBy is required")
+		return nil, errors.New(code_errors.CodeCreatedByRequired)
 	}
 
 	isActive := true
@@ -117,10 +122,10 @@ func (s *QuestionService) Create(req requests.CreateQuestionRequest, createdBy s
 
 func (s *QuestionService) Update(id string, req requests.UpdateQuestionRequest, userID string, role string) (*models.Question, error) {
 	if id == "" {
-		return nil, errors.New("question ID is required")
+		return nil, errors.New(code_errors.CodeQuestionIDRequired)
 	}
 	if userID == "" {
-		return nil, errors.New("unauthorized")
+		return nil, errors.New(code_errors.CodeUnauthorized)
 	}
 
 	var question *models.Question
@@ -135,9 +140,9 @@ func (s *QuestionService) Update(id string, req requests.UpdateQuestionRequest, 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			if role == constants.RoleAdmin {
-				return nil, errors.New("question not found")
+				return nil, errors.New(code_errors.CodeQuestionNotFound)
 			}
-			return nil, errors.New("question not found or you are not the owner")
+			return nil, errors.New(code_errors.CodeQuestionNotFoundOrNotOwn)
 		}
 		return nil, err
 	}
@@ -161,7 +166,7 @@ func (s *QuestionService) Update(id string, req requests.UpdateQuestionRequest, 
 	}
 
 	if len(updates) == 0 {
-		return question, errors.New("no fields to update") // No updates, return existing question
+		return question, errors.New(code_errors.CodeNoFieldsToUpdate) // No updates, return existing question
 	}
 
 	if err := s.Repository.Update(id, updates); err != nil {
@@ -182,17 +187,17 @@ func (s *QuestionService) Update(id string, req requests.UpdateQuestionRequest, 
 
 func (s *QuestionService) Delete(id string, userID string, role string) error {
 	if id == "" {
-		return errors.New("question ID is required")
+		return errors.New(code_errors.CodeQuestionIDRequired)
 	}
 	if userID == "" {
-		return errors.New("unauthorized")
+		return errors.New(code_errors.CodeUnauthorized)
 	}
 
 	if role == constants.RoleAdmin {
 		_, err := s.Repository.FindByID(id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return errors.New("question not found")
+				return errors.New(code_errors.CodeQuestionNotFound)
 			}
 			return err
 		}
@@ -203,7 +208,7 @@ func (s *QuestionService) Delete(id string, userID string, role string) error {
 	_, err := s.Repository.FindOwnedByID(id, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("question not found or you are not the owner")
+			return errors.New(code_errors.CodeQuestionNotFoundOrNotOwn)
 		}
 		return err
 	}
@@ -211,4 +216,33 @@ func (s *QuestionService) Delete(id string, userID string, role string) error {
 	_ = s.AuditService.Log(userID, "question.deleted", "question", id, "Question deleted by owner")
 
 	return s.Repository.Delete(id)
+}
+
+func (s *QuestionService) Restore(id string, userID string, role string) (*models.Question, error) {
+	if id == "" {
+		return nil, errors.New(code_errors.CodeQuestionIDRequired)
+	}
+	if userID == "" {
+		return nil, errors.New(code_errors.CodeUnauthorized)
+	}
+
+	if role == constants.RoleAdmin {
+		question, err := s.Repository.FindAnyByID(id)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New(code_errors.CodeQuestionNotFound)
+			}
+			return nil, err
+		}
+		if question.IsActive {
+			return nil, errors.New(code_errors.CodeQuestionAlreadyActive)
+		}
+		if err := s.Repository.Restore(id); err != nil {
+			return nil, err
+		}
+		_ = s.AuditService.Log(userID, "question.restored", "question", id, "Question restored by admin")
+		return s.Repository.FindByID(id)
+	}
+
+	return nil, errors.New(code_errors.CodeForbidden)
 }
